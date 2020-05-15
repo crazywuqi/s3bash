@@ -8,11 +8,11 @@ Usage: $0 HTTP-METHOD URL [options...]
  -O save_http_response_body_to_file
  --body-binary=localfile
  --body-raw=xxx
- #--body-form-urlencode="k1:v1" --body-form-urlencode="k2:v2" 
- #--body-form-text="k1:v1" --body-form-file="k2:file"
+ #not impl --body-form-urlencode="k1:v1" --body-form-urlencode="k2:v2" 
+ #not impl --body-form-text="k1:v1" --body-form-file="k2:file"
  -a access_key 
  -s secret_key 
- -e easy out
+ -e easy simple out
  -h help
 EOF
 }
@@ -187,6 +187,10 @@ else
   curl_cmd=("curl" "-v" "-X" "${method}")
 fi
 
+if [[ x$method == xHEAD ]]; then
+  curl_cmd=("${curl_cmd[@]}" "-I")
+fi
+
 for key in ${!header_map[@]}  
 do  
   curl_cmd=("${curl_cmd[@]}" "-H" "\"${key}: ${header_map[$key]}\"")
@@ -208,8 +212,9 @@ esac
 curl_cmd=("${curl_cmd[@]}" "\"${request_url}\"")
 if ! $easy_out ; then
   echo "###### curl command: "${curl_cmd[@]}
+
 fi
 ############## curl cmd end ##############
 
 eval ${curl_cmd[@]}
-exit 0
+exit $?
