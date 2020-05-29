@@ -10,6 +10,7 @@ Usage: $0 HTTP-METHOD URL [options...]
  --body-raw=xxx
  #not impl --body-form-urlencode="k1:v1" --body-form-urlencode="k2:v2" 
  #not impl --body-form-text="k1:v1" --body-form-file="k2:file"
+ --cacl-md5 auto to cacl content-md5
  -a access_key 
  -s secret_key 
  -e easy simple out
@@ -81,7 +82,7 @@ declare -A bxwfu_map
 body_br=
 body_bb=
 body_type=0  #0:none 1:form-data 2:x-www-form-urlencoded 3:raw 4:binary
-
+cacl_md5=false
 easy_out=false
 
 while getopts "H:O:-:a:s:eh" opt
@@ -107,6 +108,8 @@ do
         body-binary=*)
           body_type=4
           body_bb=${OPTARG#*=};;
+        cacl-md5)
+          cacl_md5=true;;
         *)
           display_help
           exit -1;;
@@ -149,11 +152,23 @@ if [[ -z ${header_map[$content_type_key]} ]]; then
   # be sure header_map_keys has content_type_key. then curl can not rewrite content-type
   header_map[$content_type_key]=
   #0:none 1:form-data 2:x-www-form-urlencoded 3:raw 4:binar
-  case body_type in
-    1) ${header_map[$content_type_key]}="multipart/form-data;";;
-    2) ${header_map[$content_type_key]}="application/x-www-form-urlencoded";;
+  case $body_type in
+    1) header_map[$content_type_key]="multipart/form-data;";;
+    2) header_map[$content_type_key]="application/x-www-form-urlencoded";;
+    3) header_map[$content_type_key]="application/xml";;
   esac 
 fi
+
+if [[ n$cacl_md5 = ntrue ]]; then
+  header_map[$content_md5_key]=
+  case $body_type in
+    1);;
+    2);;
+    3) header_map[$content_md5_key]=`echo -en ${body_br} | openssl dgst -md5 -binary | openssl enc -base64`;;
+    4) header_map[$content_md5_key]=`openssl dgst -md5 -binary ${body_bb} | openssl enc -base64`;;
+  esac
+fi
+
 #echo ${!header_map[@]}
 
 ############# version 2 authorization start #############
