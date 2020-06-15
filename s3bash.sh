@@ -83,7 +83,10 @@ body_br=
 body_bb=
 body_type=0  #0:none 1:form-data 2:x-www-form-urlencoded 3:raw 4:binary
 cacl_md5=false
+signature_v4=false
 easy_out=false
+
+signed_subresources=("acl", "cors", "delete", "lifecycle", "location", "logging", "notification", "partNumber", "policy", "requestPayment", "response-cache-control", "response-content-disposition", "response-content-encoding", "response-content-language", "response-content-type", "response-expires", "tagging", "torrent", "uploadId", "uploads", "versionId", "versioning", "versions", "website")
 
 while getopts "H:O:-:a:s:eh" opt
 do
@@ -110,6 +113,8 @@ do
           body_bb=${OPTARG#*=};;
         cacl-md5)
           cacl_md5=true;;
+        signature-v4)
+          signature_v4=true;;
         *)
           display_help
           exit -1;;
@@ -184,12 +189,14 @@ param_keys=($(echo ${!param_map[@]} | sed 's/ /\n/g' |sort ))
 first_param=true
 for key in ${param_keys[@]}
 do
-  if $first_param ; then
-    string_to_sign="${string_to_sign}?${key}${param_map[$key]}"
-  else
-    string_to_sign="${string_to_sign}&${key}${param_map[$key]}"
+  if [[ "${signed_subresources[*]}" == *"$key"*  ]]; then
+    if $first_param ; then
+      string_to_sign="${string_to_sign}?${key}${param_map[$key]}"
+    else
+      string_to_sign="${string_to_sign}&${key}${param_map[$key]}"
+    fi
+    first_param=false
   fi
-  first_param=false
 done
 signature=`echo -en ${string_to_sign} | openssl sha1 -hmac ${secret_key} -binary | base64`
 ############## version 2 authorization end ##############
